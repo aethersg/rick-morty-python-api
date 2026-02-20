@@ -1,10 +1,20 @@
-FROM ubuntu:latest
-MAINTAINER Jude Tan "judetan@gmail.com"
-RUN apt-get update -y
-RUN apt-get install -y python-pip python-dev build-essential
-COPY . /app
+FROM ubuntu:24.04
+
+LABEL maintainer="Jude Tan <judetan@gmail.com>"
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \
+     python3 python3-pip python3-dev python3-venv build-essential \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN python3 -m venv /opt/venv \
+  && /opt/venv/bin/pip install --no-cache-dir -r /app/requirements.txt
+
+COPY . /app
+
 EXPOSE 5000
-ENTRYPOINT ["python"]
-CMD ["app/app.py"]
+ENV PATH="/opt/venv/bin:$PATH"
+CMD ["python", "app/app.py"]
