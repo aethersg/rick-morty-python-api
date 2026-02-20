@@ -16,5 +16,6 @@ RUN python3 -m venv /opt/venv \
 COPY . /app
 
 EXPOSE 5000
+ENV PYTHONPATH="/app/src"
 ENV PATH="/opt/venv/bin:$PATH"
-CMD ["python", "app/app.py"]
+CMD ["python", "-m", "app.app"]

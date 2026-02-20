@@ -5,3 +5,5 @@ services:
     build: .
     ports:
       - "8888:5000"
+    environment:
+      - PYTHONPATH=/app/src

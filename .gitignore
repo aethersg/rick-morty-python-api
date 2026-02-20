@@ -1,8 +1,14 @@
-# Created by .ignore support plugin (hsz.mobi)
-.idea/misc.xml
-.idea/modules.xml
-.idea/rick-morty-python-api.iml
-.idea/vcs.xml
-.idea/workspace.xml
-.idea/inspectionProfiles/profiles_settings.xml
-.idea/inspectionProfiles/Project_Default.xml
+.DS_Store
+.env
+.venv
+venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
