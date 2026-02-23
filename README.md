@@ -83,6 +83,10 @@ curl http://localhost:5000/health
 curl -X POST http://localhost:5000/reload
 ```
 
+Error behavior:
+
+- If the quotes file is missing or invalid, `GET /` and `POST /reload` return `503` with an `error` message.
+
 ## Quick Architecture
 
 ```

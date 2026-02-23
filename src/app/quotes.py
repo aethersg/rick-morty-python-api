@@ -10,11 +10,16 @@ class QuoteLoadError(RuntimeError):
     pass
 
 
+def _resolve_quotes_path(quotes_path: str) -> Path:
+    path = Path(quotes_path)
+    if path.is_absolute():
+        return path
+    return Path(__file__).resolve().parents[2] / path
+
+
 class QuoteStore:
     def __init__(self, quotes_path: str, auto_reload: bool = False) -> None:
-        self._path = Path(quotes_path)
-        if not self._path.is_absolute():
-            self._path = Path(__file__).resolve().parents[2] / self._path
+        self._path = _resolve_quotes_path(quotes_path)
         self._auto_reload = auto_reload
         self._quotes: List[str] = []
         self._mtime: Optional[float] = None
@@ -22,6 +27,10 @@ class QuoteStore:
     @property
     def count(self) -> int:
         return len(self._quotes)
+
+    @property
+    def path(self) -> Path:
+        return self._path
 
     def _load_quotes(self) -> List[str]:
         try:

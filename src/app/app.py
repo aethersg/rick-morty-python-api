@@ -12,16 +12,24 @@ from flask_restful import Api, Resource
 from .quotes import QuoteLoadError, QuoteStore
 
 
+def _parse_bool(value: Optional[str], default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes"}
+
+
+def _with_meta(payload: Dict[str, Any], request_id: str) -> Dict[str, Any]:
+    payload.setdefault("source", "rick-morty")
+    payload.setdefault("request_id", request_id)
+    return payload
+
+
 def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     app = Flask(__name__)
     api = Api(app)
 
     quotes_path = os.getenv("QUOTES_PATH", "quotes.json")
-    auto_reload = os.getenv("QUOTES_AUTO_RELOAD", "false").lower() in {
-        "1",
-        "true",
-        "yes",
-    }
+    auto_reload = _parse_bool(os.getenv("QUOTES_AUTO_RELOAD"), default=False)
 
     app.config.update(
         {
@@ -32,7 +40,7 @@ def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     if config:
         app.config.update(config)
 
-    app.extensions["quote_store"] = QuoteStore(
+    app.config["QUOTE_STORE"] = QuoteStore(
         app.config["QUOTES_PATH"],
         auto_reload=app.config["QUOTES_AUTO_RELOAD"],
     )
@@ -60,11 +68,6 @@ def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         )
         return response
 
-    def with_meta(payload: Dict[str, Any]) -> Dict[str, Any]:
-        payload.setdefault("source", "rick-morty")
-        payload.setdefault("request_id", g.request_id)
-        return payload
-
     class RandomQuote(Resource):
         @staticmethod
         def get():
@@ -73,34 +76,34 @@ def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                 try:
                     seed_int = int(seed)
                 except ValueError:
-                    return with_meta({"error": "seed must be an integer"}), 400
+                    return _with_meta({"error": "seed must be an integer"}, g.request_id), 400
             else:
                 seed_int = None
 
-            store: QuoteStore = app.extensions["quote_store"]
+            store: QuoteStore = app.config["QUOTE_STORE"]
             try:
                 r_quote = store.get_random_quote(seed=seed_int)
                 count = store.count
             except QuoteLoadError as exc:
-                return with_meta({"error": str(exc)}), 500
+                return _with_meta({"error": str(exc)}, g.request_id), 503
 
-            return with_meta({"quote": r_quote, "count": count})
+            return _with_meta({"quote": r_quote, "count": count}, g.request_id)
 
     class Health(Resource):
         @staticmethod
         def get():
-            return with_meta({"status": "ok"})
+            return _with_meta({"status": "ok"}, g.request_id)
 
     class Reload(Resource):
         @staticmethod
         def post():
-            store: QuoteStore = app.extensions["quote_store"]
+            store: QuoteStore = app.config["QUOTE_STORE"]
             try:
                 count = store.reload()
             except QuoteLoadError as exc:
-                return with_meta({"error": str(exc)}), 500
+                return _with_meta({"error": str(exc)}, g.request_id), 503
 
-            return with_meta({"status": "reloaded", "count": count})
+            return _with_meta({"status": "reloaded", "count": count}, g.request_id)
 
     api.add_resource(RandomQuote, "/")
     api.add_resource(Health, "/health")
@@ -109,6 +112,6 @@ def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 
 if __name__ == "__main__":
-    debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
+    debug = _parse_bool(os.getenv("DEBUG"), default=False)
     port = int(os.getenv("PORT", "5000"))
     create_app().run(debug=debug, host="0.0.0.0", port=port)
